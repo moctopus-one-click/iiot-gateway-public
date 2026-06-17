@@ -99,6 +99,10 @@ generate_secrets() {
                openssl rand -hex 64 2>/dev/null || \
                cat /dev/urandom | tr -dc 'a-f0-9' | head -c 128)
 
+  JWT_REFRESH_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))" 2>/dev/null || \
+                       openssl rand -hex 64 2>/dev/null || \
+                       cat /dev/urandom | tr -dc 'a-f0-9' | head -c 128)
+
   echo ""
   echo -n "  Nombre de esta instalación (ej: planta-norte): "
   read -r GATEWAY_ID_INPUT </dev/tty
@@ -110,6 +114,7 @@ generate_secrets() {
 GATEWAY_PORT=$GATEWAY_PORT
 GATEWAY_ID=$GATEWAY_ID
 JWT_SECRET=$JWT_SECRET
+JWT_REFRESH_SECRET=$JWT_REFRESH_SECRET
 URL_FRONTEND=http://$LOCAL_IP:$GATEWAY_PORT
 EOF
 
