@@ -101,7 +101,7 @@ generate_secrets() {
 
   echo ""
   echo -n "  Nombre de esta instalación (ej: planta-norte): "
-  read GATEWAY_ID_INPUT
+  read -r GATEWAY_ID_INPUT </dev/tty
   GATEWAY_ID="${GATEWAY_ID_INPUT:-gateway-001}"
 
   LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
@@ -117,8 +117,10 @@ EOF
 }
 
 start_gateway() {
-  echo -e "${YELLOW}→ Descargando e iniciando Moctopus Gateway...${NC}"
-  docker compose pull
+  echo -e "${YELLOW}→ Descargando imagen de Moctopus Gateway...${NC}"
+  docker compose pull || { echo -e "${RED}✗ Error descargando la imagen${NC}"; exit 1; }
+
+  echo -e "${YELLOW}→ Iniciando gateway...${NC}"
   docker compose up -d
 
   echo ""
