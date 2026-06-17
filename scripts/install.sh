@@ -82,7 +82,7 @@ setup_directory() {
 }
 
 download_files() {
-  BASE_URL="https://raw.githubusercontent.com/moctopus/gateway/main"
+  BASE_URL="https://raw.githubusercontent.com/moctopus-one-click/iiot-gateway-public/main"
 
   echo -e "${YELLOW}→ Descargando archivos de configuración...${NC}"
   curl -fsSL "$BASE_URL/docker-compose.yml" -o docker-compose.yml
