@@ -24,7 +24,7 @@
 Ejecuta este comando en tu servidor o equipo industrial:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/moctopus-one-click/iiot-gateway/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/moctopus-one-click/iiot-gateway-public/main/scripts/install.sh | bash
 ```
 
 El script instala Docker si no está presente, configura el gateway y lo deja funcionando en menos de 5 minutos.
