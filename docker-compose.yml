@@ -1,0 +1,55 @@
+services:
+  gateway:
+    image: ghcr.io/moctopus-one-click/iiot-gateway:latest
+    # build: .  # solo para desarrollo local
+    container_name: moctopus-gateway
+    restart: unless-stopped
+
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+      # Base de datos — apunta al volumen persistente
+      DATABASE_URL: "file:/data/gateway.db"
+
+      # JWT — CAMBIAR en producción
+      JWT_SECRET: "${JWT_SECRET}"
+
+      # ID del gateway — único por instalación
+      GATEWAY_ID: "${GATEWAY_ID:-gateway-001}"
+
+      # URL del frontend (para CORS) — en producción es el mismo origen
+      URL_FRONTEND: "${URL_FRONTEND:-http://localhost:3000}"
+      STATIC_ROOT: /app/ui/dist
+
+    volumes:
+      # Volumen persistente para la base de datos SQLite
+      # Los datos sobreviven a reinicios y actualizaciones del contenedor
+      - gateway_data:/data
+
+    networks:
+      - moctopus
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  gateway_data:
+    driver: local
+
+networks:
+  moctopus:
+    driver: bridge
