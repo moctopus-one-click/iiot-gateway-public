@@ -62,9 +62,39 @@ El script descarga la nueva versión, hace backup de la base de datos y reinicia
 
 ---
 
+## Notas para hardware específico
+
+### Jetson Nano (JetPack 4.x / Ubuntu Bionic)
+
+Si tu Jetson Nano usa una versión antigua de JetPack, el instalador de Docker puede fallar porque Ubuntu Bionic (18.04) llegó a fin de soporte. Instala Docker manualmente antes de correr el script:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  bionic stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo usermod -aG docker $USER
+```
+
+Cierra sesión y vuelve a entrar, luego corre el instalador normalmente:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/moctopus-one-click/iiot-gateway-public/main/scripts/install.sh | bash
+```
+
+---
+
 ## Soporte
 
 Para soporte técnico o consultas comerciales:
 
-- **Email:** soporte@moctopus.com
-- **Web:** [moctopus.com](https://moctopus.com)
+- **Email:** info@moctopuss.com
+- **Web:** [moctopussas.com](https://moctopussas.com)
