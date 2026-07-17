@@ -111,6 +111,7 @@ generate_secrets() {
   LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
 
   cat > .env << EOF
+GATEWAY_VERSION=$GATEWAY_VERSION
 GATEWAY_PORT=$GATEWAY_PORT
 GATEWAY_ID=$GATEWAY_ID
 JWT_SECRET=$JWT_SECRET

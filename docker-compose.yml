@@ -1,6 +1,6 @@
 services:
   gateway:
-    image: ghcr.io/moctopus-one-click/iiot-gateway:latest
+    image: ghcr.io/moctopus-one-click/iiot-gateway:${GATEWAY_VERSION:-latest}
     # build: .  # solo para desarrollo local
     container_name: moctopus-gateway
     restart: unless-stopped
