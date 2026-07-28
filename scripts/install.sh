@@ -89,6 +89,9 @@ download_files() {
   curl -fsSL "$BASE_URL/scripts/update.sh" -o update.sh
   chmod +x update.sh
 
+  mkdir -p mosquitto
+  curl -fsSL "$BASE_URL/mosquitto/mosquitto.conf" -o mosquitto/mosquitto.conf
+
   echo -e "${GREEN}✓ Archivos descargados${NC}"
 }
 
@@ -103,12 +106,29 @@ generate_secrets() {
                        openssl rand -hex 64 2>/dev/null || \
                        cat /dev/urandom | tr -dc 'a-f0-9' | head -c 128)
 
+  # Credenciales de dynamic-security (broker Mosquitto de ingesta MQTT) —
+  # MQTT_ADMIN_PASSWORD se escribe además en mosquitto/password_init, que
+  # el broker lee UNA sola vez (si dynamic-security.json no existe todavía)
+  # para crear el usuario admin con esta misma contraseña. Ver
+  # contrato-ingesta-mqtt-moctopus.md.
+  MQTT_ADMIN_PASSWORD=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" 2>/dev/null || \
+                        openssl rand -hex 32 2>/dev/null || \
+                        cat /dev/urandom | tr -dc 'a-f0-9' | head -c 64)
+
+  MQTT_SUBSCRIBER_PASSWORD=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" 2>/dev/null || \
+                             openssl rand -hex 32 2>/dev/null || \
+                             cat /dev/urandom | tr -dc 'a-f0-9' | head -c 64)
+
   echo ""
   echo -n "  Nombre de esta instalación (ej: planta-norte): "
   read -r GATEWAY_ID_INPUT </dev/tty
   GATEWAY_ID="${GATEWAY_ID_INPUT:-gateway-001}"
 
   LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+
+  mkdir -p mosquitto
+  printf '%s' "$MQTT_ADMIN_PASSWORD" > mosquitto/password_init
+  chmod 600 mosquitto/password_init
 
   cat > .env << EOF
 GATEWAY_VERSION=$GATEWAY_VERSION
@@ -117,6 +137,12 @@ GATEWAY_ID=$GATEWAY_ID
 JWT_SECRET=$JWT_SECRET
 JWT_REFRESH_SECRET=$JWT_REFRESH_SECRET
 URL_FRONTEND=http://$LOCAL_IP:$GATEWAY_PORT
+MQTT_INGEST_ENABLED=true
+MQTT_INGEST_BROKER_URL=mqtt://mosquitto:1883
+MQTT_INGEST_ADMIN_USERNAME=admin
+MQTT_INGEST_ADMIN_PASSWORD=$MQTT_ADMIN_PASSWORD
+MQTT_INGEST_SUBSCRIBER_USERNAME=gateway-ingest
+MQTT_INGEST_SUBSCRIBER_PASSWORD=$MQTT_SUBSCRIBER_PASSWORD
 EOF
 
   echo -e "${GREEN}✓ Configuración generada${NC}"

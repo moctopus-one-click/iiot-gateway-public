@@ -25,6 +25,16 @@ services:
       URL_FRONTEND: "${URL_FRONTEND:-http://localhost:3000}"
       STATIC_ROOT: /app/ui/dist
 
+      # Ingesta MQTT (devices que publican su propia telemetría) — ver
+      # contrato-ingesta-mqtt-moctopus.md. Credenciales generadas por
+      # install.sh en la instalación inicial.
+      MQTT_INGEST_ENABLED: "${MQTT_INGEST_ENABLED:-true}"
+      MQTT_INGEST_BROKER_URL: "${MQTT_INGEST_BROKER_URL:-mqtt://mosquitto:1883}"
+      MQTT_INGEST_ADMIN_USERNAME: "${MQTT_INGEST_ADMIN_USERNAME:-admin}"
+      MQTT_INGEST_ADMIN_PASSWORD: "${MQTT_INGEST_ADMIN_PASSWORD}"
+      MQTT_INGEST_SUBSCRIBER_USERNAME: "${MQTT_INGEST_SUBSCRIBER_USERNAME:-gateway-ingest}"
+      MQTT_INGEST_SUBSCRIBER_PASSWORD: "${MQTT_INGEST_SUBSCRIBER_PASSWORD}"
+
     volumes:
       # Volumen persistente para la base de datos SQLite
       # Los datos sobreviven a reinicios y actualizaciones del contenedor
@@ -46,8 +56,23 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: moctopus-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/password_init:/mosquitto/config/password_init:ro
+      - mosquitto_data:/mosquitto/data
+    networks:
+      - moctopus
+
 volumes:
   gateway_data:
+    driver: local
+  mosquitto_data:
     driver: local
 
 networks:
