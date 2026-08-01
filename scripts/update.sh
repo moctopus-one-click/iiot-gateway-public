@@ -3,11 +3,49 @@ set -e
 
 # ─── Moctopus Gateway — Script de Actualización ─────────────────────────────
 
+BASE_URL="https://raw.githubusercontent.com/moctopus-one-click/iiot-gateway-public/main"
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+
+# Agrega al .env local las variables de $BASE_URL/.env.defaults que el
+# cliente todavía no tenga — nunca toca una que ya exista (aunque su valor
+# sea distinto al default o esté vacía). Se descarga fresco en cada corrida
+# para que instalaciones viejas reciban variables de features agregadas
+# después, sin necesidad de re-descargar update.sh. Silencioso si no hay
+# nada nuevo que agregar.
+reconcile_env() {
+  local defaults_file="$1"
+  [ -f ".env" ] || return 0
+  [ -f "$defaults_file" ] || return 0
+
+  local new_entries=()
+  while IFS='=' read -r key value; do
+    [[ -z "$key" || "$key" == \#* ]] && continue
+    grep -q "^${key}=" .env 2>/dev/null || new_entries+=("$key=$value")
+  done < "$defaults_file"
+
+  [ ${#new_entries[@]} -eq 0 ] && return 0
+
+  local backup=".env.backup_$(date +%Y%m%d_%H%M%S)"
+  cp .env "$backup"
+  {
+    echo ""
+    echo "# Agregado por update.sh — $(date +%Y-%m-%d)"
+  } >> .env
+  for entry in "${new_entries[@]}"; do
+    echo "$entry" >> .env
+  done
+
+  echo -e "${YELLOW}→ Se agregaron ${#new_entries[@]} variable(s) nueva(s) al .env:${NC}"
+  for entry in "${new_entries[@]}"; do
+    echo -e "    ${GREEN}+ ${entry%%=*}${NC}"
+  done
+  echo -e "  Backup del .env anterior: ${BLUE}$backup${NC}"
+}
 
 echo ""
 echo -e "${BLUE}╔═══════════════════════════════════════════╗${NC}"
@@ -26,6 +64,12 @@ echo -e "  Versión actual: ${YELLOW}$CURRENT${NC}"
 
 echo -e "${YELLOW}→ Descargando nueva versión...${NC}"
 docker compose pull
+
+ENV_DEFAULTS_TMP=$(mktemp)
+if curl -fsSL "$BASE_URL/.env.defaults" -o "$ENV_DEFAULTS_TMP" 2>/dev/null; then
+  reconcile_env "$ENV_DEFAULTS_TMP"
+fi
+rm -f "$ENV_DEFAULTS_TMP"
 
 echo -e "${YELLOW}→ Creando backup de la base de datos...${NC}"
 BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).db"
