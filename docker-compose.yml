@@ -56,21 +56,49 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # Copia password_init al volumen interno mosquitto_init_data con dueño
+  # mosquitto:mosquitto y permisos 700, resuelto por NOMBRE contra el
+  # /etc/passwd de la propia imagen (no por UID numérico). Corre como root
+  # (nadie le puso "user:"), así que puede leer el archivo del host sin
+  # importar qué UID lo creó ahí. Necesario porque Mosquitto viene
+  # anunciando que en una futura versión va a rechazar password_init si no
+  # tiene exactamente ese dueño/permiso dentro del container, algo que un
+  # bind mount directo del host no puede garantizar (el UID del host no
+  # tiene por qué coincidir con el UID interno de "mosquitto" en la imagen).
+  mosquitto-init:
+    image: eclipse-mosquitto:2
+    container_name: moctopus-mosquitto-init
+    volumes:
+      - ./mosquitto/password_init:/src/password_init:ro
+      - mosquitto_init_data:/mosquitto/config/init
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "cp /src/password_init /mosquitto/config/init/password_init &&
+       chown mosquitto:mosquitto /mosquitto/config/init/password_init &&
+       chmod 700 /mosquitto/config/init/password_init"
+    networks:
+      - moctopus
+
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: moctopus-mosquitto
     restart: unless-stopped
+    depends_on:
+      mosquitto-init:
+        condition: service_completed_successfully
     ports:
       - "1883:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./mosquitto/password_init:/mosquitto/config/password_init:ro
+      - mosquitto_init_data:/mosquitto/config/init:ro
       - mosquitto_data:/mosquitto/data
     networks:
       - moctopus
 
 volumes:
   gateway_data:
+    driver: local
+  mosquitto_init_data:
     driver: local
   mosquitto_data:
     driver: local

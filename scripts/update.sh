@@ -62,6 +62,39 @@ fi
 CURRENT=$(docker inspect moctopus-gateway --format='{{.Config.Image}}' 2>/dev/null || echo "desconocida")
 echo -e "  Versión actual: ${YELLOW}$CURRENT${NC}"
 
+# Re-descarga un archivo de configuración estático (sin valores de cliente
+# que preservar, a diferencia de .env) en cada corrida, para que fixes de
+# infraestructura (ej. el init container de mosquitto) lleguen también a
+# instalaciones ya existentes, no solo a instalaciones nuevas vía
+# install.sh. Silencioso si el contenido no cambió; backup + aviso si sí.
+update_static_file() {
+  local remote_path="$1"
+  local local_path="$2"
+  local tmp
+  tmp=$(mktemp)
+  if ! curl -fsSL "$BASE_URL/$remote_path" -o "$tmp" 2>/dev/null; then
+    rm -f "$tmp"
+    return 0
+  fi
+  if [ -f "$local_path" ] && cmp -s "$tmp" "$local_path"; then
+    rm -f "$tmp"
+    return 0
+  fi
+  if [ -f "$local_path" ]; then
+    local backup="${local_path}.backup_$(date +%Y%m%d_%H%M%S)"
+    cp "$local_path" "$backup"
+    echo -e "${YELLOW}→ ${local_path} actualizado (backup: ${BLUE}${backup}${NC}${YELLOW})${NC}"
+  else
+    mkdir -p "$(dirname "$local_path")"
+    echo -e "${YELLOW}→ ${local_path} descargado${NC}"
+  fi
+  cp "$tmp" "$local_path"
+  rm -f "$tmp"
+}
+
+update_static_file "docker-compose.yml" "docker-compose.yml"
+update_static_file "mosquitto/mosquitto.conf" "mosquitto/mosquitto.conf"
+
 echo -e "${YELLOW}→ Descargando nueva versión...${NC}"
 docker compose pull
 
