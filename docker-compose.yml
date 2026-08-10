@@ -21,6 +21,10 @@ services:
       # ID del gateway — único por instalación
       GATEWAY_ID: "${GATEWAY_ID:-gateway-001}"
 
+      # Timezone real de la instalación (IANA) — usado para calcular
+      # ventanas de turno y horarios de tareas programadas.
+      TIMEZONE: "${TIMEZONE:-America/Bogota}"
+
       # URL del frontend (para CORS) — en producción es el mismo origen
       URL_FRONTEND: "${URL_FRONTEND:-http://localhost:3000}"
       STATIC_ROOT: /app/ui/dist
