@@ -105,6 +105,14 @@ fi
 rm -f "$ENV_DEFAULTS_TMP"
 
 echo -e "${YELLOW}→ Creando backup de la base de datos...${NC}"
+# Con journal_mode=WAL, transacciones ya confirmadas pueden vivir solo en
+# gateway.db-wal hasta el próximo checkpoint — sin esto, copiar solo
+# gateway.db podría dejar afuera datos recientes en silencio. TRUNCATE
+# vuelca el WAL pendiente al archivo principal antes del cp; es seguro con
+# el gateway corriendo (no bloquea al escritor) y best-effort igual que el
+# resto de este bloque: si falla, el backup sigue el mismo camino de antes.
+docker compose exec -T gateway node -e "new (require('better-sqlite3'))('/data/gateway.db').pragma('wal_checkpoint(TRUNCATE)')" 2>/dev/null || \
+  echo -e "${YELLOW}  (No se pudo forzar el checkpoint de WAL — el backup puede no incluir las transacciones más recientes)${NC}"
 BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).db"
 docker compose cp gateway:/data/gateway.db "./$BACKUP_FILE" 2>/dev/null || \
   echo -e "${YELLOW}  (No se pudo crear backup automático — la BD está en el volumen)${NC}"
