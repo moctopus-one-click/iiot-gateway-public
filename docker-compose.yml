@@ -23,6 +23,7 @@ services:
 
       # Timezone real de la instalación (IANA) — usado para calcular
       # ventanas de turno y horarios de tareas programadas.
+      TZ: "${TIMEZONE:-America/Bogota}"
       TIMEZONE: "${TIMEZONE:-America/Bogota}"
 
       # URL del frontend (para CORS) — en producción es el mismo origen
